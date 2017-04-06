@@ -6,6 +6,10 @@
  * enable the time values is by selecting a date, the program essentially "self polices" that part
  */
 
+/*
+ * updates: made it so it searches for patient instead, doesn't overwrite patient information 4/5/17 at 9pm
+ */
+
 package controller;
 
 import java.sql.Connection;
@@ -35,6 +39,9 @@ public class addAppController {
         Stage stage;
         Scene scene;
         Parent root;
+        
+        //labels 
+        @FXML private Label lblErrPatient;
 
         //buttons for times
         @FXML private RadioButton rb1;
@@ -52,6 +59,11 @@ public class addAppController {
         @FXML private DatePicker datePick;
         @FXML private Button submit;
         @FXML private Button cancel;
+       
+        //added by Anna1------used to search the patient, prevents any overwriting with patient info from the patient table
+        @FXML private Button searchBtn;
+        //-----------------------------
+
         @FXML private TextField PnumTF;
         @FXML private TextField patientPhone;
 
@@ -64,6 +76,8 @@ public class addAppController {
          //groups radio buttons into toggle, disable buttons, set values
          public void initialize()
         {
+        	 //disable the datepicker
+        	 datePick.setDisable(true);
                 //set values
                  //morning
                 rb8.setUserData(8);
@@ -120,6 +134,101 @@ public class addAppController {
         }
 
 
+        //-------added Anna 2-----------------
+        //used to search the patient to create appt
+        @FXML
+        void searchPatient(ActionEvent event) throws SQLException {
+        	
+        	//clear fields 
+        	patientName.clear();
+        	patientPhone.clear();
+        	
+        	//deselect everything if user moves around
+        	submit.setDisable(true);
+            
+            rb8.setDisable(true);
+            rb9.setDisable(true);
+            rb10.setDisable(true);
+            rb11.setDisable(true);
+            rb12.setDisable(true);
+            rb1.setDisable(true);
+            rb2.setDisable(true);
+            rb3.setDisable(true);
+            rb4.setDisable(true);
+            rb5.setDisable(true);
+            
+          //deselect time buttons
+    		rb8.setSelected(false);
+    		rb9.setSelected(false);
+    		rb10.setSelected(false);
+    		rb11.setSelected(false);
+    		rb12.setSelected(false);
+    		rb1.setSelected(false);
+    		rb2.setSelected(false);
+    		rb3.setSelected(false);
+    		rb4.setSelected(false);
+    		rb5.setSelected(false);
+    		
+    		//clear label
+    		  lblErrPatient.setText("");
+        	
+        	
+        	//get the patient ID
+        	String patientID = PnumTF.getText();
+        	
+        	//for concatenating name as last name, first name
+        	String concatName;
+        	
+        	//search based on patient name
+        	String searchQuery = "SELECT `LNAME`, `FName`, `Phone_Number`  FROM `Patient_Info` WHERE PNumber = ?";
+        	
+        	  ResultSet rs = null;
+
+              //connect to database
+              try(
+                              Connection conn = DBConfig.getConnection();
+                              PreparedStatement findPatient = conn.prepareStatement(searchQuery);
+                      ){
+
+                              //insert the selected number for the query
+                              findPatient.setString(1, patientID);
+                              rs = findPatient.executeQuery();//execute query
+                              
+                              //check and see if you got data or not
+                              if (!rs.isBeforeFirst() ) {    
+                            	    System.out.println("No patient found"); 
+                            	    lblErrPatient.setText("No patient found");
+                            	    
+                            	} 
+                              else //go ahead and get the data the data
+                              {
+                            	  rs.next();
+                            	  lblErrPatient.setText("");
+                            	  System.out.println("patient found");
+                            	  
+                            	  String lastName = rs.getString("LNAME");
+                            	  String firstName = rs.getString("FName");
+                            	  String phone = rs.getString("Phone_Number");
+                            	  
+                            	  concatName = lastName + ", " + firstName;
+                            	  
+                            	  //display data
+                            	  patientName.setText(concatName);
+                            	  patientPhone.setText(phone);
+                            	  
+                            	  //enable the datepicker
+                            	  datePick.setDisable(false);
+                              }
+                              
+              		}catch(SQLException ex){//try
+                        ex.printStackTrace();
+              		}
+        	
+
+        }
+
+        
+        
       //called when a radio button is selected, assigns value to radio button, only enables submit when radio button is selected
         @FXML
         void timeSelect(ActionEvent event) 
